@@ -1,0 +1,152 @@
+﻿
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-alpha1/css/bootstrap.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-alpha1/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
+    <title>Order</title>
+    <style>
+        #block1 {
+            text-align: center;
+        }
+
+        .btn-primary {
+            margin-left: 3%;
+        }
+    </style>
+
+    <script>
+        var json = {
+            items: []
+        };
+        var productjson = {
+            items: [{
+                product_Id: '0',
+                product_Name: '0',
+                price: '0',
+                cost: '0'
+            }]
+        };
+
+        function Load() {
+            $.ajax({
+                type: "Get",
+                url: "/Orders/api/OrderGet",
+                dataType: "json",
+                success: function(response) {
+                    response.forEach(element => {
+                        json.items.push(element);
+                    });
+                    Binding();
+                }
+            });
+        }
+
+        function ProductClick(ProductId_vm) {
+            $.ajax({
+                type: "Get",
+                url: "/Product/api/ProductGet",
+                data: {
+                    ProductId: ProductId_vm
+                },
+                dataType: "json",
+                success: function(data, response) {
+                    data.forEach(element => {
+                        productjson.items[0].product_Id = element.product_Id;
+                        productjson.items[0].product_Name = element.product_Name;
+                        productjson.items[0].price = element.price;
+                        productjson.items[0].cost = element.cost;
+                    })
+                }
+            });
+        }
+
+        function Binding() {
+            vm = new Vue({
+                el: '#block1',
+                data: {
+                    items: json.items
+                }
+            });
+        }
+
+        function ProBinding() {
+            productvm = new Vue({
+                el: '#ProductModalvm',
+                data: {
+                    items: productjson.items,
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            Load();
+            ProBinding();
+            $('#Confirm').click(function() {
+                var arr = $('input:checkbox:checked[name="check"]').map(function() {
+                    return $(this).val();
+                }).get()
+                $.ajax({
+                    type: "post",
+                    url: "/UpdataOrder/api/OrderPost",
+                    contentType: 'application/json',
+                    data: JSON.stringify(arr),
+                    success: function(data, status) {
+                        window.location.reload();
+                    }
+                });
+            });
+        })
+    </script>
+
+<body>
+    <table class="table table-striped" id="block1">
+        <thead>
+            <tr>
+                <th scope="col">Check</th>
+                <th scope="col">Order Id</th>
+                <th scope="col">Order Item</th>
+                <th scope="col">Price</th>
+                <th scope="col">Cost</th>
+                <th scope="col">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="item in items">
+                <td scope="row"><input v-if="item.status === 'Payment completed'" type="checkbox" name="check" :value="item.order_Id"></td>
+                <td>{{item.order_Id}}</td>
+                <td>
+                    <a href="" :id="item.order_Item" v-on:click="ProductClick(item.product_Id)" data-toggle="modal" data-target="#ProductModal">{{item.order_Item}}</a>
+                </td>
+                <td>{{item.price}}</td>
+                <td>{{item.cost}}</td>
+                <td>{{item.status}}</td>
+            </tr>
+        </tbody>
+    </table>
+    <button class="btn btn-primary" id="Confirm">Confirm</button>
+    <div id="ProductModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="ProductModalLabel" aria-hidden="true">
+        <div class="modal-dialog" id="ProductModalvm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{items[0].product_Name}}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Product_Id：{{items[0].product_Id}}<br>Product_Name：{{items[0].product_Name}}<br>Price：{{items[0].price}}<br>Cost：{{items[0].cost}}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
